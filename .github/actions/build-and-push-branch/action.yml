@@ -41,6 +41,7 @@ runs:
 
     - name: Publish to Maven Local
       run: VERSION=${{ steps.vars.outputs.oss_branch_tag }} SUB_BUILD=PLATFORM ./gradlew publishToMavenLocal
+      shell: bash
 
     - name: Login to Docker (on Master)
       uses: docker/login-action@v1
