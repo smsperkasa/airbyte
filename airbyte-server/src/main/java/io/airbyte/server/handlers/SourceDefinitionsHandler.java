@@ -7,6 +7,7 @@ package io.airbyte.server.handlers;
 import static io.airbyte.server.ServerConstants.DEV_IMAGE_TAG;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.airbyte.api.model.CustomSourceDefinitionCreate;
 import io.airbyte.api.model.ReleaseStage;
 import io.airbyte.api.model.SourceDefinitionCreate;
 import io.airbyte.api.model.SourceDefinitionIdRequestBody;
@@ -134,12 +135,35 @@ public class SourceDefinitionsHandler {
     return buildSourceDefinitionRead(configRepository.getStandardSourceDefinition(sourceDefinitionIdRequestBody.getSourceDefinitionId()));
   }
 
-  public SourceDefinitionRead createCustomSourceDefinition(final SourceDefinitionCreate sourceDefinitionCreate)
+  public SourceDefinitionRead createPrivateSourceDefinition(final SourceDefinitionCreate sourceDefinitionCreate)
       throws JsonValidationException, IOException {
+    final StandardSourceDefinition sourceDefinition = sourceDefinitionFromCreate(sourceDefinitionCreate)
+        .withPublic(false)
+        .withCustom(false);
+    configRepository.writeStandardSourceDefinition(sourceDefinition);
+
+    return buildSourceDefinitionRead(sourceDefinition);
+  }
+
+  public SourceDefinitionRead createCustomSourceDefinition(final CustomSourceDefinitionCreate customSourceDefinitionCreate)
+      throws JsonValidationException, IOException {
+    final StandardSourceDefinition sourceDefinition = sourceDefinitionFromCreate(customSourceDefinitionCreate.getSourceDefinition())
+        .withPublic(false)
+        .withCustom(true);
+    configRepository.writeStandardSourceDefinition(sourceDefinition);
+    configRepository.writeActorDefinitionWorkspaceGrant(
+        sourceDefinition.getSourceDefinitionId(),
+        customSourceDefinitionCreate.getWorkspaceId());
+
+    return buildSourceDefinitionRead(sourceDefinition);
+  }
+
+  private StandardSourceDefinition sourceDefinitionFromCreate(final SourceDefinitionCreate sourceDefinitionCreate)
+      throws IOException {
     final ConnectorSpecification spec = getSpecForImage(sourceDefinitionCreate.getDockerRepository(), sourceDefinitionCreate.getDockerImageTag());
 
     final UUID id = uuidSupplier.get();
-    final StandardSourceDefinition sourceDefinition = new StandardSourceDefinition()
+    return new StandardSourceDefinition()
         .withSourceDefinitionId(id)
         .withDockerRepository(sourceDefinitionCreate.getDockerRepository())
         .withDockerImageTag(sourceDefinitionCreate.getDockerImageTag())
@@ -150,10 +174,6 @@ public class SourceDefinitionsHandler {
         .withTombstone(false)
         .withReleaseStage(StandardSourceDefinition.ReleaseStage.CUSTOM)
         .withResourceRequirements(ApiPojoConverters.actorDefResourceReqsToInternal(sourceDefinitionCreate.getResourceRequirements()));
-
-    configRepository.writeStandardSourceDefinition(sourceDefinition);
-
-    return buildSourceDefinitionRead(sourceDefinition);
   }
 
   public SourceDefinitionRead updateSourceDefinition(final SourceDefinitionUpdate sourceDefinitionUpdate)
