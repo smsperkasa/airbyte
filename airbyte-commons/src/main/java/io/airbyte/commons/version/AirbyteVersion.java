@@ -13,6 +13,7 @@ import java.util.Objects;
 public class AirbyteVersion {
 
   public static final String DEV_VERSION = "dev";
+  public static final String OSS_BRANCH_VERSION_PREFIX = "oss-branch";
   public static final String AIRBYTE_VERSION_KEY_NAME = "airbyte_version";
 
   private final String version;
@@ -25,7 +26,7 @@ public class AirbyteVersion {
     this.version = version;
     final String[] parsedVersion = version.replace("\n", "").strip().split("-")[0].split("\\.");
 
-    if (version.equals(DEV_VERSION)) {
+    if (version.equals(DEV_VERSION) || version.contains(OSS_BRANCH_VERSION_PREFIX)) {
       this.major = null;
       this.minor = null;
       this.patch = null;
