@@ -26,6 +26,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] htt
 RUN apt-get update && apt-get install -y kubectl
 
 ENV APPLICATION airbyte-workers
+ARG VERSION=0.35.59-alpha
 
 WORKDIR /app
 
