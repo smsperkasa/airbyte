@@ -133,13 +133,13 @@ check.dependsOn 'spotlessApply'
 @SuppressWarnings('GroovyAssignabilityCheck')
 def Task getDockerBuildTask(String artifactName, String projectDir) {
     return task ("buildDockerImage-$artifactName"(type: DockerBuildImage) {
-        def buildTag = System.getenv('VERSION') ?: 'dev'
+//        def buildTag = System.getenv('VERSION') ?: 'dev' TODO figure out if it's ok to remove this defaulting behavior, force 'dev' to be explicitly set
+        def buildTag = getVersion()
         def buildPlatform = System.getenv('DOCKER_BUILD_PLATFORM') ?: 'linux/amd64'
         def alpineImage = System.getenv('ALPINE_IMAGE') ?: 'alpine:3.4'
         def postgresImage = System.getenv('POSTGRES_IMAGE') ?: 'postgres:13-alpine'
         def jdkVersion = System.getenv('JDK_VERSION') ?: '17.0.1'
         def buildArch = System.getenv('DOCKER_BUILD_ARCH') ?: 'amd64'
-        def versionBuildArg = getVersion()
 
         inputDir = file("$projectDir/build/docker")
         platform = buildPlatform
@@ -148,7 +148,7 @@ def Task getDockerBuildTask(String artifactName, String projectDir) {
         buildArgs.put('DOCKER_BUILD_ARCH', buildArch)
         buildArgs.put('ALPINE_IMAGE', alpineImage)
         buildArgs.put('POSTGRES_IMAGE', postgresImage)
-        buildArgs.put('VERSION', versionBuildArg)
+        buildArgs.put('VERSION', buildTag)
     })
 }
 
