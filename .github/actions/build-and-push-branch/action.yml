@@ -1,18 +1,13 @@
 name: "Build and Push Branch"
 description: "Build and Push Branch"
 inputs:
-  branch_name:
+  oss_branch_tag:
     required: true
   dockerhub_token:
     required: true
 runs:
   using: "composite"
   steps:
-    - name: Parsing Inputs and set Variables
-      id: vars
-      shell: bash
-      run: echo "::set-output name=oss_branch_tag::oss-branch-$(git rev-parse --short ${{ inputs.branch_name }})"
-
     - uses: actions/setup-java@v1
       with:
         java-version: "17"
@@ -36,11 +31,11 @@ runs:
       shell: bash
 
     - name: Build
-      run: VERSION=${{ steps.vars.outputs.oss_branch_tag }} SUB_BUILD=PLATFORM ./gradlew build --scan
+      run: VERSION=${{ inputs.oss_branch_tag }} SUB_BUILD=PLATFORM ./gradlew build --scan
       shell: bash
 
     - name: Publish to Maven Local
-      run: VERSION=${{ steps.vars.outputs.oss_branch_tag }} SUB_BUILD=PLATFORM ./gradlew publishToMavenLocal
+      run: VERSION=${{ inputs.oss_branch_tag }} SUB_BUILD=PLATFORM ./gradlew publishToMavenLocal
       shell: bash
 
     - name: Login to Docker (on Master)
@@ -51,6 +46,6 @@ runs:
 
     - name: Push Docker Images
       run: |
-        docker push airbyte/worker:${{ steps.vars.outputs.oss_branch_tag }}
-        docker push airbyte/webapp:${{ steps.vars.outputs.oss_branch_tag }}
+        docker push airbyte/worker:${{ inputs.oss_branch_tag }}
+        docker push airbyte/webapp:${{ inputs.oss_branch_tag }}
       shell: bash
