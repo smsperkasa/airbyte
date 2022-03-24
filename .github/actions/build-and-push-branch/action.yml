@@ -1,5 +1,5 @@
-name: "Build and Push Branch"
-description: "Build and Push Branch"
+name: "Build and Push Branch for Cloud"
+description: "Build and Push Branch for Cloud"
 inputs:
   oss_branch_tag:
     required: true
@@ -48,4 +48,6 @@ runs:
       run: |
         docker push airbyte/worker:${{ inputs.oss_branch_tag }}
         docker push airbyte/webapp:${{ inputs.oss_branch_tag }}
+        docker push airbyte/metrics-reporter:${{ inputs.oss_branch_tag }}
+        docker push airbyte/scheduler:${{ inputs.oss_branch_tag }}
       shell: bash
