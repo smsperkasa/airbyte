@@ -6,10 +6,12 @@ package io.airbyte.commons.version;
 
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * The AirbyteVersion identifies the version of the database used internally by Airbyte services.
  */
+@Slf4j
 public class AirbyteVersion {
 
   public static final String DEV_VERSION = "dev";
@@ -134,6 +136,8 @@ public class AirbyteVersion {
   }
 
   public boolean isDev() {
+    log.info("Called isDev for version {}", version);
+    log.info("version.contains(OSS_BRANCH_VERSION_PREFIX): {}", version.contains(OSS_BRANCH_VERSION_PREFIX));
     return version.equals(DEV_VERSION) || version.contains(OSS_BRANCH_VERSION_PREFIX);
   }
 
