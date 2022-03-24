@@ -33,5 +33,7 @@ WORKDIR /app
 # Move worker app
 ADD bin/${APPLICATION}-${VERSION}.tar /app
 
+ARG VERSION
+
 # wait for upstream dependencies to become available before starting server
 ENTRYPOINT ["/bin/bash", "-c", "${APPLICATION}-${VERSION}/bin/${APPLICATION}"]

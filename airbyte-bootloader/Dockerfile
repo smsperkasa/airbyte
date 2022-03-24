@@ -8,4 +8,6 @@ WORKDIR /app
 
 ADD bin/${APPLICATION}-${VERSION}.tar /app
 
+ARG VERSION
+
 ENTRYPOINT ["/bin/bash", "-c", "${APPLICATION}-${VERSION}/bin/${APPLICATION}"]
