@@ -30,7 +30,12 @@ if (!env.containsKey('VERSION')) {
     throw new Exception('Version not specified in .env file...')
 }
 
-def getVersion = System.getenv("VERSION") ?: env.VERSION
+def getOssVersion = System.getenv("VERSION") ?: env.VERSION
+
+ext {
+    oss_version = getOssVersion
+}
+
 
 def createLicenseWith = { File license, String startComment, String endComment, String lineComment, boolean isPython ->
     /*
@@ -134,7 +139,7 @@ check.dependsOn 'spotlessApply'
 def Task getDockerBuildTask(String artifactName, String projectDir) {
     return task ("buildDockerImage-$artifactName"(type: DockerBuildImage) {
 //        def buildTag = System.getenv('VERSION') ?: 'dev' TODO figure out if it's ok to remove this defaulting behavior, force 'dev' to be explicitly set
-        def buildTag = getVersion()
+        def buildTag = rootProject.ext.oss_version
         def buildPlatform = System.getenv('DOCKER_BUILD_PLATFORM') ?: 'linux/amd64'
         def alpineImage = System.getenv('ALPINE_IMAGE') ?: 'alpine:3.4'
         def postgresImage = System.getenv('POSTGRES_IMAGE') ?: 'postgres:13-alpine'
@@ -148,7 +153,7 @@ def Task getDockerBuildTask(String artifactName, String projectDir) {
         buildArgs.put('DOCKER_BUILD_ARCH', buildArch)
         buildArgs.put('ALPINE_IMAGE', alpineImage)
         buildArgs.put('POSTGRES_IMAGE', postgresImage)
-        buildArgs.put('VERSION', buildTag)
+        buildArgs.put('VERSION', buildTag) // TODO do we even need this? maybe just need the images.add
     })
 }
 
@@ -170,7 +175,7 @@ allprojects {
     group = "io.${rootProject.name}${sub.isEmpty() ? '' : ".$sub"}"
     project.archivesBaseName = "${project.group}-${project.name}"
 
-    version = getVersion
+    version = rootProject.ext.oss_version
 }
 
 // Java projects common configurations
