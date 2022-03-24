@@ -356,6 +356,21 @@ public class ConfigRepository {
         .execute());
   }
 
+  public boolean actorDefinitionWorkspaceGrantExists(final UUID actorDefinitionId, final UUID workspaceId) throws IOException {
+    final Integer count = database.query(ctx -> ctx.fetchCount(
+        DSL.selectFrom(ACTOR_DEFINITION_WORKSPACE_GRANT)
+            .where(ACTOR_DEFINITION_WORKSPACE_GRANT.ACTOR_DEFINITION_ID.eq(actorDefinitionId))
+            .and(ACTOR_DEFINITION_WORKSPACE_GRANT.WORKSPACE_ID.eq(workspaceId))));
+    return count == 1;
+  }
+
+  public void deleteActorDefinitionWorkspaceGrant(final UUID actorDefinitionId, final UUID workspaceId) throws IOException {
+    database.query(ctx -> ctx.deleteFrom(ACTOR_DEFINITION_WORKSPACE_GRANT)
+        .where(ACTOR_DEFINITION_WORKSPACE_GRANT.ACTOR_DEFINITION_ID.eq(actorDefinitionId))
+        .and(ACTOR_DEFINITION_WORKSPACE_GRANT.WORKSPACE_ID.eq(workspaceId))
+        .execute());
+  }
+
   public boolean workspaceCanUseDefinition(final UUID actorDefinitionId, final UUID workspaceId)
       throws IOException {
     final Result<Record> records = actorDefinitionsJoinedWithGrants(
