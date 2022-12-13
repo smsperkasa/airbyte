@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+  airbyte-proxy:
+    ports:
+      - 8000:8000
+      - 8001:8001
+      - 8003:8003

@@ -1,0 +1,9 @@
+version: "3.7"
+services:
+  airbyte-proxy:
+    expose:
+      - 8000
+      - 8001
+      - 8003
+    networks:
+      - smsp-network
