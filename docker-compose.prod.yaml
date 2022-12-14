@@ -7,6 +7,11 @@ services:
       - 8003
     networks:
       - smsp-network
+  server:
+    expose:
+      - 8001
+    networks:
+      - smsp-network
 networks:
   smsp-network:
     external: true
