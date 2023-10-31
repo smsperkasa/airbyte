@@ -21,16 +21,21 @@ properties:
       - dockerRepository
       - dockerImageTag
       - license
-      - supportUrl
+      - documentationUrl
       - githubIssueLabel
-      - sourceType
+      - connectorSubtype
       - releaseStage
+    additionalProperties: false
     properties:
       name:
+        type: string
+      icon:
         type: string
       definitionId:
         type: string
         format: uuid
+      connectorBuildOptions:
+        "$ref": ConnectorBuildOptions.yaml
       connectorType:
         type: string
         enum:
@@ -46,38 +51,63 @@ properties:
         type: boolean
       license:
         type: string
-      supportUrl:
+      documentationUrl:
         type: string
         format: uri
       githubIssueLabel:
         type: string
-      sourceType:
+      maxSecondsBetweenMessages:
+        description: Maximum delay between 2 airbyte protocol messages, in second. The source will timeout if this delay is reached
+        type: integer
+      releaseDate:
+        description: The date when this connector was first released, in yyyy-mm-dd format.
         type: string
-      releaseStage:
+        format: date
+      protocolVersion:
+        type: string
+        description: the Airbyte Protocol version supported by the connector
+      connectorSubtype:
         type: string
         enum:
-          - alpha
-          - beta
-          - generally_available
-          - source
-
-      catalogs:
+          - api
+          - database
+          - datalake
+          - file
+          - custom
+          - message_queue
+          - unknown
+          - vectorstore
+      releaseStage:
+        "$ref": ReleaseStage.yaml
+      supportLevel:
+        "$ref": SupportLevel.yaml
+      tags:
+        type: array
+        description: "An array of tags that describe the connector. E.g: language:python, keyword:rds, etc."
+        items:
+          type: string
+        default: []
+      registries:
         anyOf:
           - type: object
             additionalProperties: false
             properties:
               oss:
                 anyOf:
-                  - "$ref": CatalogOverrides.yaml
+                  - "$ref": RegistryOverrides.yaml
               cloud:
                 anyOf:
-                  - "$ref": CatalogOverrides.yaml
+                  - "$ref": RegistryOverrides.yaml
 
       allowedHosts:
         "$ref": AllowedHosts.yaml
+      releases:
+        "$ref": ConnectorReleases.yaml
       normalizationConfig:
         "$ref": NormalizationDestinationDefinitionConfig.yaml
       suggestedStreams:
         "$ref": SuggestedStreams.yaml
       resourceRequirements:
         "$ref": ActorDefinitionResourceRequirements.yaml
+      ab_internal:
+        "$ref": AirbyteInternal.yaml

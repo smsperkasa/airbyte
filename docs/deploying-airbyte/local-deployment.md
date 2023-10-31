@@ -12,7 +12,7 @@ These instructions have been tested on MacOS, Windows 10 and Ubuntu 22.04.
 
 ```bash
 # clone Airbyte from GitHub
-git clone https://github.com/airbytehq/airbyte.git
+git clone --depth=1 https://github.com/airbytehq/airbyte.git
 
 # switch into Airbyte directory
 cd airbyte
@@ -56,7 +56,7 @@ Make sure to select the options:
 **3. You're done!**
 
 ```bash
-git clone https://github.com/airbytehq/airbyte.git
+git clone --depth=1 https://github.com/airbytehq/airbyte.git
 cd airbyte
 bash run-ab-platform.sh
 ```
@@ -67,4 +67,4 @@ bash run-ab-platform.sh
 
 ## Troubleshooting
 
-If you encounter any issues, just connect to our [Slack](https://slack.airbyte.io). Our community will help! We also have a [troubleshooting](../troubleshooting/on-deploying.md) section in our docs for common problems.
+If you encounter any issues, just connect to our [Slack](https://slack.airbyte.io). Our community will help! We also have a [troubleshooting](../troubleshooting.md) section in our docs for common problems.

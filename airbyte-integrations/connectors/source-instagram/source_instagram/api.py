@@ -17,7 +17,7 @@ from facebook_business.adobjects.page import Page
 from facebook_business.exceptions import FacebookRequestError
 from source_instagram.common import InstagramAPIException, retry_pattern
 
-backoff_policy = retry_pattern(backoff.expo, FacebookRequestError, max_tries=7, factor=5)
+backoff_policy = retry_pattern(backoff.expo, FacebookRequestError, max_tries=5, factor=5)
 
 
 class MyFacebookAdsApi(FacebookAdsApi):
@@ -101,6 +101,10 @@ class InstagramAPI:
             raise InstagramAPIException(f"Error: {exc.api_error_code()}, {exc.api_error_message()}") from exc
 
         if not instagram_business_accounts:
-            raise InstagramAPIException("Couldn't find an Instagram business account for current Access Token")
+            raise InstagramAPIException(
+                "Couldn't find an Instagram business account for current Access Token. "
+                "Please ensure you had create a facebook developer application."
+                " See more here https://developers.facebook.com/docs/development/create-an-app/"
+            )
 
         return instagram_business_accounts

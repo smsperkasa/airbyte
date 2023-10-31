@@ -8,20 +8,21 @@ from unittest import mock
 import pendulum
 import pytest
 import requests
+from airbyte_cdk.sources.streams.http.availability_strategy import HttpAvailabilityStrategy
 from pydantic import BaseModel
-from source_klaviyo.streams import Events, IncrementalKlaviyoStream, KlaviyoStream, ReverseIncrementalKlaviyoStream
+from source_klaviyo.streams import EmailTemplates, Events, IncrementalKlaviyoStreamV1, KlaviyoStreamV1, ReverseIncrementalKlaviyoStreamV1
 
 START_DATE = pendulum.datetime(2020, 10, 10)
 
 
-class SomeStream(KlaviyoStream):
+class SomeStream(KlaviyoStreamV1):
     schema = mock.Mock(spec=BaseModel)
 
     def path(self, **kwargs) -> str:
         return "sub_path"
 
 
-class SomeIncrementalStream(IncrementalKlaviyoStream):
+class SomeIncrementalStream(IncrementalKlaviyoStreamV1):
     schema = mock.Mock(spec=BaseModel)
     cursor_field = "updated_at"
 
@@ -29,7 +30,7 @@ class SomeIncrementalStream(IncrementalKlaviyoStream):
         return "sub_path"
 
 
-class SomeReverseIncrementalStream(ReverseIncrementalKlaviyoStream):
+class SomeReverseIncrementalStream(ReverseIncrementalKlaviyoStreamV1):
     schema = mock.Mock(spec=BaseModel)
     cursor_field = "updated_at"
 
@@ -42,7 +43,7 @@ def response_fixture(mocker):
     return mocker.Mock(spec=requests.Response)
 
 
-class TestKlaviyoStream:
+class TestKlaviyoStreamV1:
     @pytest.mark.parametrize(
         ["response_json", "next_page_token"],
         [
@@ -78,49 +79,69 @@ class TestKlaviyoStream:
 
         assert list(result) == response.json.return_value["data"]
 
+    def test_availability_strategy(self):
+        stream = SomeStream(api_key="some_key")
+        assert isinstance(stream.availability_strategy, HttpAvailabilityStrategy)
 
-class TestIncrementalKlaviyoStream:
+
+class TestIncrementalKlaviyoStreamV1:
     def test_cursor_field_is_required(self):
         with pytest.raises(
-            TypeError, match="Can't instantiate abstract class IncrementalKlaviyoStream with abstract methods cursor_field, path"
+            TypeError, match="Can't instantiate abstract class IncrementalKlaviyoStreamV1 with abstract methods cursor_field, path"
         ):
-            IncrementalKlaviyoStream(api_key="some_key", start_date=START_DATE.isoformat())
+            IncrementalKlaviyoStreamV1(api_key="some_key", start_date=START_DATE.isoformat())
 
     @pytest.mark.parametrize(
-        ["next_page_token", "stream_state", "expected_params"],
+        ["config_start_date", "next_page_token", "stream_state", "expected_params"],
         [
             # start with start_date
-            (None, {}, {"api_key": "some_key", "count": 100, "sort": "asc", "since": START_DATE.int_timestamp}),
+            (START_DATE.isoformat(), None, {}, {"api_key": "some_key", "count": 100, "sort": "asc", "since": START_DATE.int_timestamp}),
             # pagination overrule
-            ({"since": 123}, {}, {"api_key": "some_key", "count": 100, "sort": "asc", "since": 123}),
+            (START_DATE.isoformat(), {"since": 123}, {}, {"api_key": "some_key", "count": 100, "sort": "asc", "since": 123}),
             # start_date overrule state if state < start_date
             (
+                START_DATE.isoformat(),
                 None,
                 {"updated_at": START_DATE.int_timestamp - 1},
                 {"api_key": "some_key", "count": 100, "sort": "asc", "since": START_DATE.int_timestamp},
             ),
             # but pagination still overrule
             (
+                START_DATE.isoformat(),
                 {"since": 123},
                 {"updated_at": START_DATE.int_timestamp - 1},
                 {"api_key": "some_key", "count": 100, "sort": "asc", "since": 123},
             ),
             # and again
             (
+                START_DATE.isoformat(),
                 {"since": 123},
                 {"updated_at": START_DATE.int_timestamp + 1},
                 {"api_key": "some_key", "count": 100, "sort": "asc", "since": 123},
             ),
             # finally state > start_date and can be used
             (
+                START_DATE.isoformat(),
                 None,
                 {"updated_at": START_DATE.int_timestamp + 1},
                 {"api_key": "some_key", "count": 100, "sort": "asc", "since": START_DATE.int_timestamp + 1},
             ),
+            (
+                None,
+                None,
+                {"updated_at": START_DATE.int_timestamp + 1},
+                {"api_key": "some_key", "count": 100, "sort": "asc", "since": START_DATE.int_timestamp + 1},
+            ),
+            (
+                None,
+                None,
+                None,
+                {"api_key": "some_key", "count": 100, "sort": "asc", "since": 0},
+            ),
         ],
     )
-    def test_request_params(self, next_page_token, stream_state, expected_params):
-        stream = SomeIncrementalStream(api_key="some_key", start_date=START_DATE.isoformat())
+    def test_request_params(self, config_start_date, next_page_token, stream_state, expected_params):
+        stream = SomeIncrementalStream(api_key="some_key", start_date=config_start_date)
         result = stream.request_params(stream_state=stream_state, next_page_token=next_page_token)
 
         assert result == expected_params
@@ -136,13 +157,15 @@ class TestIncrementalKlaviyoStream:
                 {"updated_at": "2021-04-03 17:15:12", "some_field": 100},
                 {"updated_at": datetime.strptime("2021-04-03 17:15:12", "%Y-%m-%d %H:%M:%S").timestamp()},
             ),
+            ({"updated_at": 12}, {"updated_at": 7998603215}, None),
+            ({"updated_at": 7998603215}, {"updated_at": 12}, None),
         ],
     )
     def test_get_updated_state(self, current_state, latest_record, expected_state):
         stream = SomeIncrementalStream(api_key="some_key", start_date=START_DATE.isoformat())
         result = stream.get_updated_state(current_stream_state=current_state, latest_record=latest_record)
 
-        assert result == expected_state
+        assert result == (expected_state if expected_state else {stream.cursor_field: stream._start_sync})
 
     @pytest.mark.parametrize(
         ["response_json", "next_page_token"],
@@ -159,13 +182,13 @@ class TestIncrementalKlaviyoStream:
         assert result == next_page_token
 
 
-class TestReverseIncrementalKlaviyoStream:
+class TestReverseIncrementalKlaviyoStreamV1:
     def test_cursor_field_is_required(self):
         with pytest.raises(
             TypeError,
-            match="Can't instantiate abstract class ReverseIncrementalKlaviyoStream with abstract methods cursor_field, path",
+            match="Can't instantiate abstract class ReverseIncrementalKlaviyoStreamV1 with abstract methods cursor_field, path",
         ):
-            ReverseIncrementalKlaviyoStream(api_key="some_key", start_date=START_DATE.isoformat())
+            ReverseIncrementalKlaviyoStreamV1(api_key="some_key", start_date=START_DATE.isoformat())
 
     def test_state_checkpoint_interval(self):
         stream = SomeReverseIncrementalStream(api_key="some_key", start_date=START_DATE.isoformat())
@@ -290,4 +313,35 @@ class TestEventsStream:
                 "flow_id": "advanced",
                 "flow_message_id": "nice to meet you",
             },
+        ]
+
+
+class TestEmailTemplatesStream:
+    def test_parse_response(self, mocker):
+        stream = EmailTemplates(api_key="some_key")
+        json = {
+            "data": [
+                {
+                    "object": "email-template",
+                    "id": "id",
+                    "name": "Newsletter #1",
+                    "html": "<!DOCTYPE html></html>",
+                    "is_writeable": "true",
+                    "created": "2023-02-18T11:18:22+00:00",
+                    "updated": "2023-02-18T12:01:12+00:00",
+                },
+            ]
+        }
+        records = list(stream.parse_response(mocker.Mock(json=mocker.Mock(return_value=json))))
+
+        assert records == [
+            {
+                "object": "email-template",
+                "id": "id",
+                "name": "Newsletter #1",
+                "html": "<!DOCTYPE html></html>",
+                "is_writeable": "true",
+                "created": "2023-02-18T11:18:22+00:00",
+                "updated": "2023-02-18T12:01:12+00:00",
+            }
         ]

@@ -12,15 +12,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.airbyte.cdk.db.Database;
+import io.airbyte.cdk.db.factory.DSLContextFactory;
+import io.airbyte.cdk.db.factory.DataSourceFactory;
+import io.airbyte.cdk.db.factory.DatabaseDriver;
+import io.airbyte.cdk.db.jdbc.JdbcUtils;
 import io.airbyte.commons.exceptions.ConfigErrorException;
 import io.airbyte.commons.json.Jsons;
 import io.airbyte.commons.string.Strings;
 import io.airbyte.commons.util.MoreIterators;
-import io.airbyte.db.Database;
-import io.airbyte.db.factory.DSLContextFactory;
-import io.airbyte.db.factory.DataSourceFactory;
-import io.airbyte.db.factory.DatabaseDriver;
-import io.airbyte.db.jdbc.JdbcUtils;
 import io.airbyte.protocol.models.Field;
 import io.airbyte.protocol.models.JsonSchemaType;
 import io.airbyte.protocol.models.v0.AirbyteCatalog;
@@ -124,16 +124,16 @@ class MssqlSourceTest {
       });
 
       ConfiguredAirbyteStream configuredAirbyteStream = new ConfiguredAirbyteStream().withSyncMode(
-              SyncMode.INCREMENTAL)
+          SyncMode.INCREMENTAL)
           .withCursorField(Lists.newArrayList("id"))
           .withDestinationSyncMode(DestinationSyncMode.APPEND)
           .withSyncMode(SyncMode.INCREMENTAL)
           .withStream(CatalogHelpers.createAirbyteStream(
-                  STREAM_NAME,
-                  DB_NAME,
-                  Field.of("id", JsonSchemaType.INTEGER),
-                  Field.of("name", JsonSchemaType.STRING),
-                  Field.of("born", JsonSchemaType.STRING))
+              STREAM_NAME,
+              DB_NAME,
+              Field.of("id", JsonSchemaType.INTEGER),
+              Field.of("name", JsonSchemaType.STRING),
+              Field.of("born", JsonSchemaType.STRING))
               .withSupportedSyncModes(
                   Lists.newArrayList(SyncMode.FULL_REFRESH, SyncMode.INCREMENTAL))
               .withSourceDefinedPrimaryKey(List.of(List.of("id"))));

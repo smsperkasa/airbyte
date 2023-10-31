@@ -13,10 +13,9 @@ definitions:
     url_base: "{{ config['instance_api_url'] }}"
     http_method: "GET"
     authenticator:
-      type: "SessionTokenAuthenticator"
+      type: "LegacySessionTokenAuthenticator"
       username: "{{ config['username'] }}"
       password: "{{ config['password'] }}"
-      api_url: "{{ config['instance_api_url'] }}"
       header: "X-Metabase-Session"
       session_token: "{{ config['session_token'] }}"
       session_token_response_key: "id"
@@ -40,11 +39,6 @@ definitions:
     primary_key: "id"
     retriever:
       $ref: "#/definitions/retriever"
-  activity_stream:
-    $ref: "#/definitions/base_stream"
-    $parameters:
-      name: "activity"
-      path: "activity"
   cards_stream:
     $ref: "#/definitions/base_stream"
     $parameters:
@@ -68,7 +62,6 @@ definitions:
       name: "users"
       path: "user"
 streams:
-  - "#/definitions/activity_stream"
   - "#/definitions/cards_stream"
   - "#/definitions/collections_stream"
   - "#/definitions/dashboards_stream"
@@ -76,4 +69,4 @@ streams:
 
 check:
   stream_names:
-    - "activity"
+    - "dashboards"

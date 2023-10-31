@@ -11,6 +11,7 @@ import source_bing_ads.source
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.core import package_name_from_class
 from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
+from airbyte_cdk.sources.utils.transform import TransformConfig, TypeTransformer
 from bingads.service_client import ServiceClient
 from bingads.v13.internal.reporting.row_report import _RowReport
 from bingads.v13.internal.reporting.row_report_iterator import _RowReportRecord
@@ -149,6 +150,7 @@ class ReportsMixin(ABC):
     timeout: int = 300000
     report_file_format: str = "Csv"
 
+    transformer: TypeTransformer = TypeTransformer(TransformConfig.DefaultSchemaNormalization)
     primary_key: List[str] = ["TimePeriod", "Network", "DeviceType"]
 
     @property
@@ -164,6 +166,7 @@ class ReportsMixin(ABC):
     def report_columns(self) -> Iterable[str]:
         """
         Specifies bing ads report naming
+        TODO: refactor to use list(self.get_json_schema().get("properties", {}).keys()), see AgeGenderAudienceReport
         """
         pass
 
@@ -203,11 +206,7 @@ class ReportsMixin(ABC):
     def request_params(
         self, stream_state: Mapping[str, Any] = None, account_id: str = None, **kwargs: Mapping[str, Any]
     ) -> Mapping[str, Any]:
-        if not stream_state or not account_id or not stream_state.get(account_id, {}).get(self.cursor_field):
-            start_date = self.client.reports_start_date
-        else:
-            # gets starting point for a stream and account
-            start_date = pendulum.from_timestamp(stream_state[account_id][self.cursor_field])
+        start_date = self.get_start_date(stream_state, account_id)
 
         reporting_service = self.client.get_service("ReportingService")
         request_time_zone = reporting_service.factory.create("ReportTimeZone")
@@ -227,6 +226,13 @@ class ReportsMixin(ABC):
             "overwrite_result_file": True,
             "timeout_in_milliseconds": self.timeout,
         }
+
+    def get_start_date(self, stream_state: Mapping[str, Any] = None, account_id: str = None):
+        if stream_state and account_id:
+            if stream_state.get(account_id, {}).get(self.cursor_field):
+                return pendulum.from_timestamp(stream_state[account_id][self.cursor_field])
+
+        return self.client.reports_start_date
 
     def get_updated_state(
         self,
@@ -293,25 +299,18 @@ class ReportsMixin(ABC):
 
         yield from []
 
-    def get_column_value(self, row: _RowReportRecord, column: str) -> Union[str, None, int, float]:
+    @staticmethod
+    def get_column_value(row: _RowReportRecord, column: str) -> Union[str, None, int, float]:
         """
-        Reads field value from row and transforms string type field to numeric if possible
+        Reads field value from row and transforms:
+        1. empty values to logical None
+        2. Percent values to numeric string e.g. "12.25%" -> "12.25"
         """
         value = row.value(column)
-        if value == "":
+        if not value or value == "--":
             return None
-
-        if value is not None and column in REPORT_FIELD_TYPES:
-            if REPORT_FIELD_TYPES[column] == "integer":
-                value = 0 if value == "--" else int(value.replace(",", ""))
-            elif REPORT_FIELD_TYPES[column] == "number":
-                if value == "--":
-                    value = 0.0
-                else:
-                    if "%" in value:
-                        value = float(value.replace("%", "").replace(",", "")) / 100
-                    else:
-                        value = float(value.replace(",", ""))
+        if "%" in value:
+            value = value.replace("%", "")
 
         return value
 
@@ -337,3 +336,15 @@ class ReportsMixin(ABC):
             yield {"account_id": account["Id"], "customer_id": account["ParentCustomerId"]}
 
         yield from []
+
+
+class PerformanceReportsMixin(ReportsMixin):
+    def get_start_date(self, stream_state: Mapping[str, Any] = None, account_id: str = None):
+        start_date = super().get_start_date(stream_state, account_id)
+
+        if self.config.get("lookback_window"):
+            # Datetime subtract won't work with days = 0
+            # it'll output an AirbyteError
+            return start_date.subtract(days=self.config["lookback_window"])
+        else:
+            return start_date

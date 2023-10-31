@@ -2,12 +2,13 @@
 # Copyright (c) 2023 Airbyte, Inc., all rights reserved.
 #
 
+import os
 from http import HTTPStatus
 from unittest.mock import MagicMock
 
 import pytest
 import requests
-from source_pinterest.source import (
+from source_pinterest.streams import (
     AdAccountAnalytics,
     AdAccounts,
     AdAnalytics,
@@ -23,6 +24,8 @@ from source_pinterest.source import (
     PinterestStream,
     PinterestSubStream,
 )
+
+os.environ["REQUEST_CACHE_PATH"] = "/tmp"
 
 
 @pytest.fixture

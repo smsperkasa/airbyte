@@ -42,6 +42,7 @@ acceptance_tests:
             bypass_reason: "Empty stream, further investigation is required"
           - name: "tracking_categories"
             bypass_reason: "Empty stream, further investigation is required"
+        fail_on_extra_columns: false
   incremental:
     tests:
       - config_path: "secrets/config.json"

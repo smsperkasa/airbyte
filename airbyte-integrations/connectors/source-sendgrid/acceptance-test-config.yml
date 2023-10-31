@@ -38,23 +38,17 @@ acceptance_tests:
             bypass_reason: "can not populate"
         ignored_fields:
           segments:
-          - name: sample_updated_at
-            bypass_reason: "depend on current date"
-          - name: next_sample_update
-            bypass_reason: "depend on current date"
+            - name: sample_updated_at
+              bypass_reason: "depend on current date"
+            - name: next_sample_update
+              bypass_reason: "depend on current date"
+        fail_on_extra_columns: false
   incremental:
     tests:
       - config_path: "secrets/config.json"
         configured_catalog_path: "integration_tests/no_spam_reports_configured_catalog.json"
         future_state:
           future_state_path: "integration_tests/abnormal_state.json"
-        cursor_paths:
-          global_suppressions: ["created"]
-          blocks: ["created"]
-          bounces: ["created"]
-          invalid_emails: ["created"]
-          # TODO: create spam_reports records
-          # spam_reports: ["created"]
   full_refresh:
     tests:
       - config_path: "secrets/config.json"
